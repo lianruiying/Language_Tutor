@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
-from openai import OpenAI
+import openai
 from dotenv import load_dotenv
 import os
 import logging
@@ -33,7 +33,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://localhost:3001",
-        "http://durian_lian.top
+        "http://durian_lian.top"
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -42,7 +42,7 @@ app.add_middleware(
 
 # 创建 OpenAI 客户端
 try:
-    client = OpenAI(api_key=api_key)
+    openai.api_key = api_key
     logger.info("OpenAI 客户端初始化成功")
 except Exception as e:
     logger.error(f"OpenAI 客户端初始化失败: {str(e)}")
@@ -77,7 +77,7 @@ async def chat_with_ai(chat_input: ChatMessage):
             ]
         )
         
-        ai_response = response.choices[0].message.content
+        ai_response = response['choices'][0]['message']['content']
         # 记录响应长度而不是具体内容
         logger.info(f"AI 响应成功，响应长度: {len(ai_response)}")
         

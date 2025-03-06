@@ -2,10 +2,17 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
-import openai
-from dotenv import load_dotenv
 import os
 import logging
+from groq import Groq
+from dotenv import load_dotenv
+import traceback
+import uuid
+import json
+import re
+import httpx
+import asyncio
+from pathlib import Path
 
 # 配置日志
 logging.basicConfig(
@@ -14,15 +21,21 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# 加载环境变量
-load_dotenv()
+# 获取当前文件所在目录
+BASE_DIR = Path(__file__).resolve().parent
 
-# 检查必要的环境变量
-api_key = os.getenv("OPENAI_API_KEY")
+# 加载环境变量
+load_dotenv(BASE_DIR / '.env')
+
+# 获取 API 密钥
+api_key = os.getenv("GROQ_API_KEY")
 if not api_key:
-    error_message = "错误: 未找到 OPENAI_API_KEY 环境变量。请确保已创建 .env 文件并设置正确的 API Key。"
+    error_message = "错误: 未找到 GROQ_API_KEY 环境变量。请确保已创建 .env 文件并设置正确的 API Key。"
     logger.error(error_message)
     raise ValueError(error_message)
+
+# 初始化 Groq 客户端
+client = Groq(api_key=api_key)
 
 # 初始化 FastAPI 应用
 app = FastAPI()
@@ -40,62 +53,82 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 创建 OpenAI 客户端
-try:
-    openai.api_key = api_key
-    logger.info("OpenAI 客户端初始化成功")
-except Exception as e:
-    logger.error(f"OpenAI 客户端初始化失败: {str(e)}")
-    raise
-
 class ChatMessage(BaseModel):
     message: str
-    language: str
+    language: str = "english"
 
+# 修改API基础URL和请求配置
+base_url = "https://api.groq.com/openai/v1"
+
+# 修改chat接口的实现
 @app.post("/api/chat")
 async def chat_with_ai(chat_input: ChatMessage):
     try:
-        # 记录请求，但不记录具体内容以保护隐私
-        logger.info(f"收到聊天请求，语言: {chat_input.language}")
+        logger.info(f"收到聊天请求: {chat_input.message}")
+        logger.info(f"选择语言: {chat_input.language if hasattr(chat_input, 'language') else '未指定'}")
         
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {
-                    "role": "system",
-                    "content": """你现在是一个精通各种外语的老师，面对的学生主要为中国人，如果收到的需求主要为汉语，请以汉语回复，如果是其他语言，也用对应的语言回复。
-
-任务：
-学生会与你沟通，让你生成对应需求的外语小短文以供学习。
-如果任务判定与外语学习无关，请不要理会，可以直接回复："此类任务与外语学习无关，不处理。"
-如果任务与外语学习有关，请根据需求生成对应的外语小短文，小短文前后请另用空行隔开。"""
-                },
-                {
-                    "role": "user",
-                    "content": chat_input.message
-                }
-            ]
-        )
-        
-        ai_response = response['choices'][0]['message']['content']
-        # 记录响应长度而不是具体内容
-        logger.info(f"AI 响应成功，响应长度: {len(ai_response)}")
-        
-        return {"response": ai_response}
-    except Exception as e:
-        error_msg = f"处理请求时发生错误: {type(e).__name__}"
-        logger.error(error_msg, exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "error": "服务器内部错误",  # 对外显示通用错误信息
-                "type": type(e).__name__
-            }
-        )
+        try:
+            # 使用 Groq 客户端发送请求
+            logger.info("正在调用 Groq API...")
+            
+            # 打印 API 密钥前几个字符（安全起见）
+            if api_key:
+                logger.info(f"使用 API 密钥: {api_key[:4]}...{api_key[-4:]}")
+            else:
+                logger.error("API 密钥为空")
+                return {"response": "API 密钥未设置", "status": "error"}
+            
+            # 尝试调用 API
+            try:
+                chat_completion = client.chat.completions.create(
+                    model="deepseek-r1-distill-llama-70b",
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": """你是一位专业的语言教师。请按照以下方式回复：
+1. 如果用户用中文提问，用中文回答；如果用户使用其他语言，用对应语言回答
+2. 保持专业性和准确性
+3. 根据用户水平调整内容难度
+4. 如果需要思考，请将思考过程放在<think></think>标签中"""
+                        },
+                        {
+                            "role": "user",
+                            "content": chat_input.message
+                        }
+                    ],
+                    temperature=0.7,
+                    max_tokens=2000
+                )
+                
+                logger.info("Groq API 调用成功")
+                
+                # 获取响应
+                ai_response = chat_completion.choices[0].message.content
+                logger.info(f"原始响应: {ai_response[:100]}...")
+                
+                # 移除思维链内容
+                cleaned_response = re.sub(r'<think>.*?</think>', '', ai_response, flags=re.DOTALL)
+                cleaned_response = cleaned_response.strip()
+                
+                logger.info(f"处理后的响应: {cleaned_response[:100]}...")
+                
+                return {"response": cleaned_response, "status": "success"}
+                
+            except Exception as api_error:
+                logger.error(f"API 调用错误: {str(api_error)}")
+                return {"response": f"AI 服务调用失败: {str(api_error)}", "status": "error"}
+                
+        except Exception as e:
+            logger.error(f"处理请求时发生错误: {str(e)}", exc_info=True)
+            return {"response": f"服务器错误: {str(e)}", "status": "error"}
+            
+    except Exception as outer_e:
+        logger.error(f"未预期的错误: {str(outer_e)}", exc_info=True)
+        return {"response": f"服务器错误: {str(outer_e)}", "status": "error"}
 
 @app.get("/")
 async def root():
-    return {"status": "ok", "message": "服务器正在运行"}
+    return {"message": "Language Tutor API"}
 
 @app.get("/test")
 async def test_endpoint():

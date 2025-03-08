@@ -14,6 +14,10 @@ import httpx
 import asyncio
 from pathlib import Path
 
+from .core.config import settings
+from .api import auth, users
+from .database.database import Base, engine
+
 # 配置日志
 logging.basicConfig(
     level=logging.INFO,
@@ -37,21 +41,24 @@ if not api_key:
 # 初始化 Groq 客户端
 client = Groq(api_key=api_key)
 
-# 初始化 FastAPI 应用
-app = FastAPI()
+# 创建数据库表
+Base.metadata.create_all(bind=engine)
 
-# 配置 CORS
+# 初始化 FastAPI 应用
+app = FastAPI(title=settings.PROJECT_NAME)
+
+# 设置CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://durian_lian.top"
-    ],
+    allow_origins=["*"],  # 在生产环境中应该限制为特定域名
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 包含路由
+app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["认证"])
+app.include_router(users.router, prefix=f"{settings.API_V1_STR}/users", tags=["用户"])
 
 class ChatMessage(BaseModel):
     message: str
@@ -127,8 +134,8 @@ async def chat_with_ai(chat_input: ChatMessage):
         return {"response": f"服务器错误: {str(outer_e)}", "status": "error"}
 
 @app.get("/")
-async def root():
-    return {"message": "Language Tutor API"}
+def read_root():
+    return {"message": "欢迎使用Language Tutor API"}
 
 @app.get("/test")
 async def test_endpoint():
@@ -143,4 +150,14 @@ async def test_endpoint():
         }
     except Exception as e:
         logger.error(f"测试端点错误: {str(e)}")
-        raise HTTPException(status_code=500, detail="服务器内部错误") 
+        raise HTTPException(status_code=500, detail="服务器内部错误")
+
+# 数据库配置
+POSTGRES_SERVER = os.getenv("POSTGRES_SERVER", "localhost")
+POSTGRES_USER = os.getenv("POSTGRES_USER", "language_admin")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "your_secure_password")
+POSTGRES_DB = os.getenv("POSTGRES_DB", "language_tutor")
+POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
+
+# 数据库URL
+DATABASE_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER}:{POSTGRES_PORT}/{POSTGRES_DB}" 

@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:13
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=language_admin
+      - POSTGRES_PASSWORD=your_secure_password
+      - POSTGRES_DB=language_tutor
+    ports:
+      - "5432:5432"
+    restart: always
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    volumes:
+      - ./language_tutor/backend:/app/language_tutor/backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      - POSTGRES_SERVER=db
+      - POSTGRES_USER=language_admin
+      - POSTGRES_PASSWORD=your_secure_password
+      - POSTGRES_DB=language_tutor
+      - POSTGRES_PORT=5432
+      - SECRET_KEY=your_secret_key
+    restart: always
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    volumes:
+      - ./language_tutor/frontend:/app
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: always
+
+volumes:
+  postgres_data:

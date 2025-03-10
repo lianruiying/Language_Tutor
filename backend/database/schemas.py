@@ -7,7 +7,6 @@ class UserBase(BaseModel):
     email: Optional[EmailStr] = None
     username: Optional[str] = None
     is_active: Optional[bool] = True
-    is_superuser: bool = False
 
 # 创建用户时需要的属性
 class UserCreate(UserBase):

@@ -1,10 +1,21 @@
-FROM python:3.10
-   
+FROM m.daocloud.io/docker.io/library/python:3.9-slim as builder
+
 WORKDIR /app
 
+# 只复制必要的文件
 COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --no-cache-dir -r requirements.txt
 
+# 只复制后端代码，而不是整个项目
 COPY backend/ /app/backend/
+COPY run.py /app/
+
+FROM m.daocloud.io/docker.io/library/python:3.9-slim
+
+WORKDIR /app
+
+COPY --from=builder /usr/local/lib/python3.9/site-packages /usr/local/lib/python3.9/site-packages
+COPY backend/ /app/backend/
+COPY run.py /app/
 
 CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]

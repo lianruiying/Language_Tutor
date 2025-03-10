@@ -14,9 +14,9 @@ import httpx
 import asyncio
 from pathlib import Path
 
-from .core.config import settings
-from .api import auth, users
-from .database.database import Base, engine
+from backend.core.config import settings
+from backend.api import auth, users
+from backend.database.database import Base, engine
 
 # 配置日志
 logging.basicConfig(
@@ -31,8 +31,8 @@ BASE_DIR = Path(__file__).resolve().parent
 # 加载环境变量
 load_dotenv(BASE_DIR / '.env')
 
-# 获取 API 密钥
-api_key = os.getenv("GROQ_API_KEY")
+# 获取 API 密钥 - 使用 settings 而不是直接从环境变量获取
+api_key = settings.GROQ_API_KEY
 if not api_key:
     error_message = "错误: 未找到 GROQ_API_KEY 环境变量。请确保已创建 .env 文件并设置正确的 API Key。"
     logger.error(error_message)
@@ -155,7 +155,7 @@ async def test_endpoint():
 # 数据库配置
 POSTGRES_SERVER = os.getenv("POSTGRES_SERVER", "localhost")
 POSTGRES_USER = os.getenv("POSTGRES_USER", "language_admin")
-POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "your_secure_password")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "LOLOLOLOL")
 POSTGRES_DB = os.getenv("POSTGRES_DB", "language_tutor")
 POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
 

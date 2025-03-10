@@ -1,12 +1,29 @@
-FROM node:16 as build
-   
-WORKDIR /app
-COPY frontend/package*.json ./
-RUN npm install
-COPY frontend/ .
-RUN npm run build
+FROM m.daocloud.io/docker.io/library/node:16 as build
+ 
 
-FROM nginx:alpine
+WORKDIR /app
+
+# 先复制 package.json 文件
+COPY frontend/package*.json ./
+
+# 使用淘宝 npm 镜像
+RUN npm config set registry https://registry.npmmirror.com && \
+    npm install
+
+# 创建 src/context 目录
+RUN mkdir -p src/context
+
+# 复制前端文件
+COPY frontend/src ./src
+COPY frontend/public ./public
+
+# 如果 context 目录在 frontend 根目录下，则复制到 src 内
+COPY frontend/context/AuthContext.js ./src/context/ || echo 'AuthContext.js not found in frontend/context/'
+
+# 构建前端
+RUN CI=false npm run build
+
+FROM m.daocloud.io/docker.io/library/nginx:alpine
 COPY --from=build /app/build /usr/share/nginx/html
 COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80

@@ -14,11 +14,11 @@ PROJECT_NAME = "Language Tutor"
 API_V1_STR = "/api/v1"
 
 # 数据库配置
-POSTGRES_SERVER = os.getenv("POSTGRES_SERVER", "localhost")
-POSTGRES_USER = os.getenv("POSTGRES_USER", "postgres")
-POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "")
-POSTGRES_DB = os.getenv("POSTGRES_DB", "language_tutor")
-POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
+POSTGRES_SERVER = "114.55.128.59"  # 你的阿里云服务器IP
+POSTGRES_USER = "lianruiying"
+POSTGRES_PASSWORD = "LOLOLOLOL"
+POSTGRES_DB = "language_tutor"
+POSTGRES_PORT = "5432"
 DATABASE_URI = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER}:{POSTGRES_PORT}/{POSTGRES_DB}"
 
 # 安全配置

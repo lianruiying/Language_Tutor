@@ -17,8 +17,6 @@ RUN mkdir -p src/context
 COPY frontend/src ./src
 COPY frontend/public ./public
 
-# 如果 context 目录在 frontend 根目录下，则复制到 src 内
-COPY frontend/context/AuthContext.js ./src/context/ || echo 'AuthContext.js not found in frontend/context/'
 
 # 构建前端
 RUN CI=false npm run build

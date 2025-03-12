@@ -22,9 +22,9 @@ services:
     depends_on:
       - db
     environment:
-      - POSTGRES_SERVER=db
+      - POSTGRES_SERVER=114.55.128.59
       - POSTGRES_USER=lianruiying
-      - POSTGRES_PASSWORD=your_secure_password
+      - POSTGRES_PASSWORD=LOLOLOLOL
       - POSTGRES_DB=language_tutor
       - POSTGRES_PORT=5432
       - SECRET_KEY=0ab283a0598774c0ecf2380ae2ef04964ca5c75148afb01011f97ec2cc8c44ca

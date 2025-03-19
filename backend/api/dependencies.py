@@ -6,11 +6,11 @@ from jose import jwt
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
-from ..database.database import get_db
-from ..database.models import User
-from ..database.schemas import TokenPayload
-from ..crud import users
-from ..core.config import settings
+from backend.database.database import get_db
+from backend.database.models import User
+from backend.database.schemas import TokenPayload
+from backend.crud import users
+from backend.core.config import settings
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
 

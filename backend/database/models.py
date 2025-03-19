@@ -1,16 +1,9 @@
 from sqlalchemy import Boolean, Column, Integer, String, DateTime
 from sqlalchemy.sql import func
-from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-from .database import Base
-
-# 创建数据库引擎
-engine = create_engine(DATABASE_URI)
-
-# 创建数据库会话
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+from backend.database.database import Base, engine
 
 # 创建所有表
 Base.metadata.create_all(bind=engine)

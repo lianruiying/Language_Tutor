@@ -1,17 +1,18 @@
 from typing import Any, List
 
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException
 from fastapi.encoders import jsonable_encoder
+from pydantic.networks import EmailStr
 from sqlalchemy.orm import Session
 
-from ..database.database import get_db
-from ..database.schemas import User, UserCreate, UserUpdate
-from ..crud import users
-from .dependencies import get_current_active_user, get_current_active_superuser
+from backend.database.models import User
+from backend.database.schemas import UserCreate, UserUpdate, UserInDB
+from backend.crud import users
+from backend.api.dependencies import get_db
 
 router = APIRouter()
 
-@router.post("/", response_model=User)
+@router.post("/", response_model=UserInDB)
 def create_user(
     *,
     db: Session = Depends(get_db),
@@ -20,71 +21,42 @@ def create_user(
     """
     创建新用户
     """
-    user = users.get_by_email(db, email=user_in.email)
-    if user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="该邮箱已被注册",
-        )
+    # 检查用户名是否已存在
     user = users.get_by_username(db, username=user_in.username)
     if user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="该用户名已被使用",
+            status_code=400,
+            detail="该用户名已被使用"
         )
-    user = users.create(db, obj_in=user_in)
-    return user
-
-@router.get("/me", response_model=User)
-def read_user_me(
-    current_user: User = Depends(get_current_active_user),
-) -> Any:
-    """
-    获取当前用户信息
-    """
-    return current_user
-
-@router.put("/me", response_model=User)
-def update_user_me(
-    *,
-    db: Session = Depends(get_db),
-    user_in: UserUpdate,
-    current_user: User = Depends(get_current_active_user),
-) -> Any:
-    """
-    更新当前用户信息
-    """
-    user = users.update(db, db_obj=current_user, obj_in=user_in)
-    return user
-
-@router.get("/{user_id}", response_model=User)
-def read_user_by_id(
-    user_id: int,
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db),
-) -> Any:
-    """
-    通过ID获取用户信息
-    """
-    user = users.get(db, id=user_id)
-    if user == current_user:
-        return user
-    if not users.is_superuser(current_user):
+    
+    # 检查邮箱是否已存在
+    user = users.get_by_email(db, email=user_in.email)
+    if user:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, 
-            detail="没有足够的权限"
+            status_code=400,
+            detail="该邮箱已被注册"
         )
-    return user
-
-@router.get("/", response_model=List[User])
-def read_users(
-    db: Session = Depends(get_db),
-    skip: int = 0,
-    limit: int = 100,
-    current_user: User = Depends(get_current_active_superuser),
-) -> Any:
-    """
-    获取所有用户列表
-    """
-    users_list = db.query(User).offset(skip).limit(limit).all()
-    return users_list 
+    
+    try:
+        # 创建用户
+        user = users.create(db, obj_in=user_in)
+        
+        # 确保返回的是一个符合UserInDB模型的字典
+        user_data = {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "is_active": user.is_active,
+            "is_superuser": user.is_superuser,
+            "created_at": user.created_at,
+            "updated_at": user.updated_at
+        }
+        
+        return user_data
+    except Exception as e:
+        # 记录错误并返回友好的错误信息
+        print(f"创建用户时出错: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="创建用户时发生错误，请稍后再试"
+        )

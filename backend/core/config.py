@@ -14,20 +14,20 @@ PROJECT_NAME = "Language Tutor"
 API_V1_STR = "/api/v1"
 
 # 数据库配置
-POSTGRES_SERVER = "114.55.128.59"  # 你的阿里云服务器IP
-POSTGRES_USER = "lianruiying"
-POSTGRES_PASSWORD = "LOLOLOLOL"
-POSTGRES_DB = "language_tutor"
-POSTGRES_PORT = "5432"
+POSTGRES_SERVER = os.getenv("POSTGRES_SERVER", "db")  # 使用容器服务名称
+POSTGRES_USER = os.getenv("POSTGRES_USER", "lianruiying")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "LOLOLOLOL")
+POSTGRES_DB = os.getenv("POSTGRES_DB", "language_tutor")
+POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")  # Docker 内部端口
 DATABASE_URI = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER}:{POSTGRES_PORT}/{POSTGRES_DB}"
 
 # 安全配置
 SECRET_KEY = os.getenv("SECRET_KEY", "")
 ACCESS_TOKEN_EXPIRE_MINUTES = 10080  # 7天
 
-# GROQ API 配置
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-GROQ_API_BASE = os.getenv("GROQ_API_BASE", "https://api.groq.com/v1")
+# DeepSeek API 配置
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
+DEEPSEEK_API_BASE = os.getenv("DEEPSEEK_API_BASE", "https://api.deepseek.com")
 
 # 创建一个设置对象，方便导入
 class Settings:
@@ -41,8 +41,8 @@ class Settings:
     DATABASE_URI = DATABASE_URI
     SECRET_KEY = SECRET_KEY
     ACCESS_TOKEN_EXPIRE_MINUTES = ACCESS_TOKEN_EXPIRE_MINUTES
-    GROQ_API_KEY = GROQ_API_KEY
-    GROQ_API_BASE = GROQ_API_BASE
+    DEEPSEEK_API_KEY = DEEPSEEK_API_KEY
+    DEEPSEEK_API_BASE = DEEPSEEK_API_BASE
 
 settings = Settings()
 

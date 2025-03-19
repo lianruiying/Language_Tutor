@@ -8,12 +8,22 @@ COPY backend/requirements.txt .
 RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --no-cache-dir -r requirements.txt
 
 # 确保关键依赖被安装
-RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --no-cache-dir uvicorn groq sqlalchemy psycopg2-binary
+RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --no-cache-dir \
+    uvicorn \
+    openai \
+    sqlalchemy \
+    psycopg2-binary \
+    email-validator \
+    pydantic[email] \
+    python-jose[cryptography] \
+    passlib[bcrypt] \
+    python-multipart
 
+# 复制整个项目
 COPY . /app/
 
 # 将当前目录添加到 Python 路径
 ENV PYTHONPATH=/app
 
 # 使用正确的模块路径
-CMD ["python", "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "debug"]

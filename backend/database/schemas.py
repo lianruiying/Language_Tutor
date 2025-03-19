@@ -25,7 +25,7 @@ class UserInDBBase(UserBase):
     updated_at: Optional[datetime] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # 返回给API的用户信息
 class User(UserInDBBase):
@@ -42,4 +42,5 @@ class Token(BaseModel):
 
 # Token载荷
 class TokenPayload(BaseModel):
-    sub: Optional[int] = None 
+    sub: Optional[int] = None
+    exp: Optional[int] = None 

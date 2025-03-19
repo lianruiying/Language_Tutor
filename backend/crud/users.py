@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from ..database.models import User
 from ..database.schemas import UserCreate, UserUpdate
 from ..core.security import get_password_hash, verify_password
+from pydantic import BaseModel
 
 def get_by_email(db: Session, email: str) -> Optional[User]:
     return db.query(User).filter(User.email == email).first()
@@ -16,16 +17,33 @@ def get(db: Session, id: int) -> Optional[User]:
     return db.query(User).filter(User.id == id).first()
 
 def create(db: Session, obj_in: UserCreate) -> User:
+    """创建新用户"""
+    # 打印调试信息
+    print(f"尝试创建用户: {obj_in.username}, {obj_in.email}")
+    
+    # 创建哈希密码
+    hashed_password = get_password_hash(obj_in.password)
+    
+    # 创建用户对象
     db_obj = User(
-        email=obj_in.email,
         username=obj_in.username,
-        hashed_password=get_password_hash(obj_in.password),
-        is_superuser=obj_in.is_superuser,
+        email=obj_in.email,
+        hashed_password=hashed_password,
+        is_active=True,
+        is_superuser=False
     )
-    db.add(db_obj)
-    db.commit()
-    db.refresh(db_obj)
-    return db_obj
+    
+    try:
+        # 添加到数据库
+        db.add(db_obj)
+        db.commit()
+        db.refresh(db_obj)
+        print(f"用户创建成功: {db_obj.id}")
+        return db_obj
+    except Exception as e:
+        db.rollback()
+        print(f"用户创建失败: {str(e)}")
+        raise e
 
 def update(db: Session, db_obj: User, obj_in: Union[UserUpdate, Dict[str, Any]]) -> User:
     if isinstance(obj_in, dict):
@@ -59,4 +77,8 @@ def is_active(user: User) -> bool:
     return user.is_active
 
 def is_superuser(user: User) -> bool:
-    return user.is_superuser 
+    return user.is_superuser
+
+class UserBase(BaseModel):
+    class Config:
+        from_attributes = True 

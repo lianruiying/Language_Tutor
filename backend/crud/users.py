@@ -65,13 +65,28 @@ def update(db: Session, db_obj: User, obj_in: Union[UserUpdate, Dict[str, Any]])
     db.refresh(db_obj)
     return db_obj
 
-def authenticate(db: Session, username: str, password: str) -> Optional[User]:
-    user = get_by_username(db, username=username)
-    if not user:
+def authenticate(db: Session, *, username: str, password: str) -> Optional[User]:
+    """验证用户凭据"""
+    try:
+        # 打印调试信息
+        print(f"尝试验证用户: {username}")
+        
+        # 获取用户
+        user = get_by_username(db, username=username)
+        if not user:
+            print(f"用户不存在: {username}")
+            return None
+        
+        # 验证密码
+        if not verify_password(password, user.hashed_password):
+            print(f"密码验证失败: {username}")
+            return None
+        
+        print(f"用户验证成功: {username}")
+        return user
+    except Exception as e:
+        print(f"用户验证异常: {str(e)}")
         return None
-    if not verify_password(password, user.hashed_password):
-        return None
-    return user
 
 def is_active(user: User) -> bool:
     return user.is_active

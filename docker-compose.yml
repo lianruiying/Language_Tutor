@@ -59,7 +59,6 @@ services:
 
 volumes:
   postgres_data:
-
 networks:
   my_custom_network:
     external: true

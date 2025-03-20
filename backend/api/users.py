@@ -5,14 +5,13 @@ from fastapi.encoders import jsonable_encoder
 from pydantic.networks import EmailStr
 from sqlalchemy.orm import Session
 
-from backend.database.models import User
-from backend.database.schemas import UserCreate, UserUpdate, UserInDB
+from backend.database.schemas import User, UserCreate, UserUpdate
 from backend.crud import users
 from backend.api.dependencies import get_db
 
 router = APIRouter()
 
-@router.post("/", response_model=UserInDB)
+@router.post("/", response_model=User)
 def create_user(
     *,
     db: Session = Depends(get_db),

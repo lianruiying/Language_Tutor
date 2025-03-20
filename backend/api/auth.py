@@ -1,7 +1,8 @@
 from datetime import timedelta
 from typing import Any
+import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
@@ -14,12 +15,19 @@ from backend.core.security import create_access_token
 router = APIRouter()
 
 @router.post("/login", response_model=Token)
-def login_access_token(
-    db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()
+async def login_access_token(
+    request: Request,
+    db: Session = Depends(get_db), 
+    form_data: OAuth2PasswordRequestForm = Depends()
 ) -> Any:
     """
     OAuth2 兼容的token登录，获取访问令牌
     """
+    # 调试信息
+    body = await request.body()
+    print(f"收到登录请求体: {body}")
+    print(f"表单数据: username={form_data.username}, password长度={len(form_data.password) if form_data.password else 0}")
+    
     user = users.authenticate(db, username=form_data.username, password=form_data.password)
     if not user:
         raise HTTPException(
